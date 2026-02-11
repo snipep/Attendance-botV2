@@ -12,7 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # ==========================================
 # CONFIGURATION
 # ==========================================
-HRONE_URL = "https://app.hrone.cloud/login#dynamischit"
+HRONE_URL = os.environ["HRONE_URL"]
 EMAIL_ID = os.environ["HRONE_USER"]
 PASSWORD = os.environ["HRONE_PASS"]
 

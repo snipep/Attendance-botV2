@@ -31,6 +31,6 @@ jobs:
             - name: Run Attendance Script
               env:
                   HRONE_URL: ${{ secrets.HRONE_URL}}
-                  HR_EMAIL: ${{ secrets.HRONE_USER }}
-                  HR_PASSWORD: ${{ secrets.HRONE_PASS }}
+                  HRONE_USER: ${{ secrets.HRONE_USER }}
+                  HRONE_PASS: ${{ secrets.HRONE_PASS }}
               run: python attendance_bot.py

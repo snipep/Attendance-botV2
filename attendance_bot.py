@@ -16,13 +16,14 @@ HRONE_URL = "https://app.hrone.cloud/login#dynamischit"
 EMAIL_ID = os.environ.get("HRONE_USER")
 PASSWORD = os.environ.get("HRONE_PASS")
 
-# --- 📍 IMPORTANT: SET YOUR LOCATION HERE ---
-# Example: Coordinates for Pune, India. 
-# Go to Google Maps, right-click your office/home, and copy these numbers.
-LATITUDE = os.environ.get("LATITUDE")
-LONGITUDE = os.environ.get("LONGITUDE")
-ACCURACY = 100
+# --- 📍 LOCATION CONFIGURATION ---
+try:
+    LATITUDE = float(os.environ.get("LATITUDE")) 
+    LONGITUDE = float(os.environ.get("LONGITUDE"))
+except (TypeError, ValueError):
+    raise ValueError("Latitude/Longitude not found or invalid! Check GitHub Secrets.")
 
+ACCURACY = 100
 HEADLESS_MODE = True 
 
 def run_attendance():
@@ -31,7 +32,7 @@ def run_attendance():
     
     # 1. Enable Geolocation Permission by default
     prefs = {
-        "profile.default_content_setting_values.geolocation": 1, # 1: Allow, 2: Block
+        "profile.default_content_setting_values.geolocation": 1,
         "profile.managed_default_content_settings.geolocation": 1
     }
     chrome_options.add_experimental_option("prefs", prefs)
@@ -39,7 +40,6 @@ def run_attendance():
     if HEADLESS_MODE:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--window-size=1920,1080")
-        # Fake UI is needed for geolocation in headless sometimes
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
     else:
         chrome_options.add_argument("--start-maximized")
@@ -47,12 +47,12 @@ def run_attendance():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     
     # 2. OVERRIDE LOCATION (Spoofing)
-    # This tells the browser: "I am at these coordinates"
     params = {
         "latitude": LATITUDE,
         "longitude": LONGITUDE,
         "accuracy": ACCURACY
     }
+    # This command will now receive Numbers, not Strings
     driver.execute_cdp_cmd("Emulation.setGeolocationOverride", params)
     print(f"Location spoofed to: {LATITUDE}, {LONGITUDE}")
 
@@ -100,7 +100,7 @@ def run_attendance():
                 driver.execute_script("arguments[0].click();", popup_mark_btn)
                 print("Clicked Popup. Waiting for confirmation...")
                 time.sleep(5)
-                driver.save_screenshot("final_status.png") # Capture result
+                driver.save_screenshot("final_status.png")
                 return
         except:
             print("Popup not found yet.")
@@ -124,7 +124,6 @@ def run_attendance():
         print("Click Action Performed.")
         
         # --- VERIFICATION ---
-        # Wait a bit to see if a toast message (Success/Error) appears
         time.sleep(5)
         print("Taking debugging screenshot 'final_status.png'...")
         driver.save_screenshot("final_status.png")

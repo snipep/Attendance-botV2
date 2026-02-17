@@ -12,23 +12,50 @@ from webdriver_manager.chrome import ChromeDriverManager
 # ==========================================
 # CONFIGURATION
 # ==========================================
-HRONE_URL = os.environ["HRONE_URL"]
-EMAIL_ID = os.environ["HRONE_USER"]
-PASSWORD = os.environ["HRONE_PASS"]
+HRONE_URL = "https://app.hrone.cloud/login#dynamischit"
+EMAIL_ID = os.environ.get("HRONE_USER")
+PASSWORD = os.environ.get("HRONE_PASS")
 
-# Set FALSE to see the browser (Local testing), TRUE for GitHub Actions
+# --- 📍 IMPORTANT: SET YOUR LOCATION HERE ---
+# Example: Coordinates for Pune, India. 
+# Go to Google Maps, right-click your office/home, and copy these numbers.
+LATITUDE = os.environ.get("LATITUDE")
+LONGITUDE = os.environ.get("LONGITUDE")
+ACCURACY = 100
+
 HEADLESS_MODE = True 
 
 def run_attendance():
     print("Initializing Chrome...")
     chrome_options = Options()
+    
+    # 1. Enable Geolocation Permission by default
+    prefs = {
+        "profile.default_content_setting_values.geolocation": 1, # 1: Allow, 2: Block
+        "profile.managed_default_content_settings.geolocation": 1
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
+
     if HEADLESS_MODE:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--window-size=1920,1080")
+        # Fake UI is needed for geolocation in headless sometimes
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
     else:
         chrome_options.add_argument("--start-maximized")
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    
+    # 2. OVERRIDE LOCATION (Spoofing)
+    # This tells the browser: "I am at these coordinates"
+    params = {
+        "latitude": LATITUDE,
+        "longitude": LONGITUDE,
+        "accuracy": ACCURACY
+    }
+    driver.execute_cdp_cmd("Emulation.setGeolocationOverride", params)
+    print(f"Location spoofed to: {LATITUDE}, {LONGITUDE}")
+
     wait = WebDriverWait(driver, 25)
 
     try:
@@ -62,27 +89,26 @@ def run_attendance():
             print("Credentials submitted. Waiting for dashboard...")
 
         # --- HANDLING THE DASHBOARD ---
-        
-        # 1. Wait for the page to settle (Crucial for overlays to disappear)
         time.sleep(5) 
 
-        # 2. Check if the "Confirm" popup is ALREADY open (e.g. auto-open)
+        # Check for auto-open popup
         try:
             print("Checking if popup is already open...")
             popup_mark_btn = driver.find_element(By.XPATH, "//div[contains(@class, 'modal') or contains(@class, 'dialog') or contains(@class, 'popup')]//button[contains(., 'Mark attendance')]")
             if popup_mark_btn.is_displayed():
                 print("Popup is already open! Clicking confirm directly...")
                 driver.execute_script("arguments[0].click();", popup_mark_btn)
-                print("SUCCESS: Attendance Marked (Popup was auto-open).")
-                return # Exit function, we are done
+                print("Clicked Popup. Waiting for confirmation...")
+                time.sleep(5)
+                driver.save_screenshot("final_status.png") # Capture result
+                return
         except:
-            print("Popup not found yet. Proceeding to click Dashboard button.")
+            print("Popup not found yet.")
 
-        # 3. If popup wasn't there, find the Dashboard button
+        # Click Dashboard Button
         print("Locating Dashboard 'Mark attendance' button...")
         home_mark_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[contains(., 'Mark attendance')]")))
         
-        # FIX: Use JavaScript Click to bypass overlays
         print("Force-clicking Dashboard button...")
         driver.execute_script("arguments[0].click();", home_mark_btn)
 
@@ -90,18 +116,22 @@ def run_attendance():
         print("Waiting for Popup...")
         time.sleep(2)
         
-        # Wait for the popup button
         popup_mark_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'modal') or contains(@class, 'dialog') or contains(@class, 'popup')]//button[contains(., 'Mark attendance')]")))
         
         print("Force-clicking Popup 'Mark attendance'...")
         driver.execute_script("arguments[0].click();", popup_mark_btn)
         
-        print("SUCCESS: Attendance Marked Successfully.")
+        print("Click Action Performed.")
+        
+        # --- VERIFICATION ---
+        # Wait a bit to see if a toast message (Success/Error) appears
         time.sleep(5)
+        print("Taking debugging screenshot 'final_status.png'...")
+        driver.save_screenshot("final_status.png")
 
     except Exception as e:
         print(f"ERROR: {str(e)}")
-        # driver.save_screenshot("debug_error.png")
+        driver.save_screenshot("error_debug.png")
         raise e
     
     finally:

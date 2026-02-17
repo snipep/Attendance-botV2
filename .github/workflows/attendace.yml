@@ -33,4 +33,6 @@ jobs:
                   HRONE_URL: ${{ secrets.HRONE_URL}}
                   HRONE_USER: ${{ secrets.HRONE_USER }}
                   HRONE_PASS: ${{ secrets.HRONE_PASS }}
+                  LATITUDE: ${{ secrets.LATITUDE }}
+                  LONGITUDE: ${{ secrets.LONGITUDE }}
               run: python attendance_bot.py

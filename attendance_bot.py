@@ -1,7 +1,7 @@
 import time
 import os
 import sys
-from dotenv import load_dotenv # Import dotenv
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -11,7 +11,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# 1. Load Environment Variables (from .env file if present)
 load_dotenv()
 
 # ==========================================
@@ -21,22 +20,13 @@ HRONE_URL = "https://app.hrone.cloud/login#dynamischit"
 EMAIL_ID = os.getenv("HRONE_USER")
 PASSWORD = os.getenv("HRONE_PASS")
 
-# Configuration for Headless Mode
-# On GitHub Actions, usually we want this True. Locally, False to see what happens.
 is_headless = os.getenv("HEADLESS_MODE", "True").lower() == "true"
-
 # --- 📍 LOCATION CONFIGURATION ---
 try:
-    lat_str = os.getenv("LATITUDE")
-    long_str = os.getenv("LONGITUDE")
-    
-    if not lat_str or not long_str:
-        raise ValueError("Latitude/Longitude not found in .env or Secrets")
-        
-    LATITUDE = float(lat_str)
-    LONGITUDE = float(long_str)
-except ValueError as e:
-    print(f"Configuration Error: {e}")
+    LATITUDE = float(os.getenv("LATITUDE")) 
+    LONGITUDE = float(os.getenv("LONGITUDE"))
+except (TypeError, ValueError):
+    print("Error: Latitude/Longitude missing.")
     sys.exit(1)
 
 ACCURACY = 100
@@ -45,25 +35,30 @@ def run_attendance():
     print(f"Initializing Chrome (Headless: {is_headless})...")
     chrome_options = Options()
     
-    # Enable Geolocation Permission
+    # --- 1. GEO PERMISSIONS ---
     prefs = {
         "profile.default_content_setting_values.geolocation": 1, 
         "profile.managed_default_content_settings.geolocation": 1
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
+    # --- 2. LINUX SERVER OPTIMIZATIONS ---
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    # --- 3. ANTI-DETECTION (IMPORTANT) ---
+    # Makes HROne think this is a real Windows PC, not a Linux Server
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled") 
+    
     if is_headless:
-        chrome_options.add_argument("--headless=new") # Updated headless flag
-        chrome_options.add_argument("--no-sandbox") 
-        chrome_options.add_argument("--disable-dev-shm-usage") 
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    else:
-        chrome_options.add_argument("--start-maximized")
+        chrome_options.add_argument("--headless=new")
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     
-    # 2. OVERRIDE LOCATION (Spoofing)
+    # --- 4. LOCATION SPOOFING ---
     params = {
         "latitude": LATITUDE,
         "longitude": LONGITUDE,
@@ -72,7 +67,7 @@ def run_attendance():
     driver.execute_cdp_cmd("Emulation.setGeolocationOverride", params)
     print(f"Location spoofed to: {LATITUDE}, {LONGITUDE}")
 
-    wait = WebDriverWait(driver, 25)
+    wait = WebDriverWait(driver, 30) 
 
     try:
         print(f"Navigating to {HRONE_URL}...")
@@ -104,47 +99,48 @@ def run_attendance():
             
             print("Credentials submitted. Waiting for dashboard...")
 
-        # --- HANDLING THE DASHBOARD ---
-        time.sleep(8) # Generous wait for page load and location fetch
+        # --- DASHBOARD & POPUP HANDLING ---
+        time.sleep(10) 
 
-        # Case A: Check if Popup is ALREADY open
+        # Check for auto-open popup
         try:
-            print("Checking if popup is already open...")
-            # We use a very short wait here just to check
+            print("Checking for auto-open popup...")
             popup_btn = driver.find_element(By.XPATH, "//div[contains(@class, 'modal') or contains(@class, 'dialog') or contains(@class, 'popup')]//button[contains(., 'Mark attendance')]")
             if popup_btn.is_displayed():
-                print("Popup is auto-open. Clicking...")
+                print("Popup found immediately!")
+                time.sleep(2) # Wait for animation
                 driver.execute_script("arguments[0].click();", popup_btn)
                 print("Clicked auto-open popup.")
                 time.sleep(5)
+                driver.save_screenshot("final_success.png")
                 return
         except:
             print("Popup not auto-open.")
 
-        # Case B: Click Dashboard Button
+        # Click Dashboard Button
         print("Locating Dashboard 'Mark attendance' button...")
-        home_mark_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[contains(., 'Mark attendance')]")))
+        home_mark_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Mark attendance')]")))
         
-        print("Force-clicking Dashboard button...")
+        print("Clicking Dashboard button...")
         driver.execute_script("arguments[0].click();", home_mark_btn)
 
         # --- MARK ATTENDANCE (POPUP) ---
         print("Waiting for Popup to appear...")
-        time.sleep(2)
+        # Wait specifically for the popup to be VISIBLE
+        popup_element = wait.until(EC.visibility_of_element_located((By.XPATH, "//div[contains(@class, 'modal') or contains(@class, 'dialog') or contains(@class, 'popup')]//button[contains(., 'Mark attendance')]")))
         
-        popup_mark_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'modal') or contains(@class, 'dialog') or contains(@class, 'popup')]//button[contains(., 'Mark attendance')]")))
+        print("Popup visible. Pausing for animation...")
+        time.sleep(3)
         
-        print("Force-clicking Popup 'Mark attendance'...")
-        driver.execute_script("arguments[0].click();", popup_mark_btn)
+        print("Clicking Popup 'Mark attendance'...")
+        driver.execute_script("arguments[0].click();", popup_element)
         
         print("SUCCESS: Click Action Performed.")
         
-        # --- VERIFICATION ---
-        time.sleep(5)
-        # Only save screenshot if running in headless or if you want logs
-        if is_headless:
-            print("Taking screenshot 'final_status.png'...")
-            driver.save_screenshot("final_status.png")
+        # --- VERIFICATION SCREENSHOT ---
+        time.sleep(8) # Wait for Toast message/Success notification
+        print("Taking verification screenshot...")
+        driver.save_screenshot("final_result.png")
 
     except Exception as e:
         print(f"ERROR: {str(e)}")

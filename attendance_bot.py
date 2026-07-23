@@ -149,7 +149,7 @@ def run_attendance():
         print("`SUCCESS`: Click Action Performed.")
 
         # --- VERIFICATION SCREENSHOT ---
-        time.sleep(8) # Wait for Toast message/Success notification
+        time.sleep(1) # Wait for Toast message/Success notification
         print("Taking verification screenshot...")
         driver.save_screenshot("final_result.png")
 

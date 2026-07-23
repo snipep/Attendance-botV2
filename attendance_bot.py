@@ -30,6 +30,7 @@ except (TypeError, ValueError):
     sys.exit(1)
 
 ACCURACY = 100
+TIMEZONE_ID = os.getenv("TIMEZONE_ID", "Asia/Kolkata")
 
 def run_attendance():
     print(f"Initializing Chrome (Headless: {is_headless})...")
@@ -51,10 +52,13 @@ def run_attendance():
     # --- 3. ANTI-DETECTION (IMPORTANT) ---
     # Makes HROne think this is a real Windows PC, not a Linux Server
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled") 
-    
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+
     if is_headless:
         chrome_options.add_argument("--headless=new")
+
+    # --- DIAGNOSTICS: capture browser console/network errors ---
+    chrome_options.set_capability("goog:loggingPrefs", {"browser": "ALL", "performance": "ALL"})
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     
@@ -66,6 +70,10 @@ def run_attendance():
     }
     driver.execute_cdp_cmd("Emulation.setGeolocationOverride", params)
     print(f"Location spoofed to: {LATITUDE}, {LONGITUDE}")
+
+    # --- 5. TIMEZONE SPOOFING (must match the spoofed location) ---
+    driver.execute_cdp_cmd("Emulation.setTimezoneOverride", {"timezoneId": TIMEZONE_ID})
+    print(f"Timezone spoofed to: {TIMEZONE_ID}")
 
     wait = WebDriverWait(driver, 30) 
 
@@ -100,7 +108,8 @@ def run_attendance():
             print("Credentials submitted. Waiting for dashboard...")
 
         # --- DASHBOARD & POPUP HANDLING ---
-        time.sleep(10) 
+        time.sleep(10)
+        driver.save_screenshot("01_after_login.png")
 
         # Check for auto-open popup
         try:
@@ -131,12 +140,14 @@ def run_attendance():
         
         print("Popup visible. Pausing for animation...")
         time.sleep(3)
-        
+        driver.save_screenshot("02_before_popup_click.png")
+
         print("Clicking Popup 'Mark attendance'...")
         driver.execute_script("arguments[0].click();", popup_element)
-        
-        print("SUCCESS: Click Action Performed.")
-        
+        driver.save_screenshot("03_immediately_after_click.png")
+
+        print("`SUCCESS`: Click Action Performed.")
+
         # --- VERIFICATION SCREENSHOT ---
         time.sleep(8) # Wait for Toast message/Success notification
         print("Taking verification screenshot...")
@@ -146,8 +157,15 @@ def run_attendance():
         print(f"ERROR: {str(e)}")
         driver.save_screenshot("error_debug.png")
         raise e
-    
+
     finally:
+        try:
+            print("--- Browser console log ---")
+            for entry in driver.get_log("browser"):
+                print(entry)
+        except Exception as log_err:
+            print(f"Could not fetch browser console log: {log_err}")
+
         print("Closing browser...")
         driver.quit()
 

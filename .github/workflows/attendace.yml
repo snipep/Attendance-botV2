@@ -35,6 +35,7 @@ jobs:
                   HRONE_PASS: ${{ secrets.HRONE_PASS }}
                   LATITUDE: ${{ secrets.LATITUDE }}
                   LONGITUDE: ${{ secrets.LONGITUDE }}
+                  PYTHONUNBUFFERED: "1"
               run: python attendance_bot.py
 
             - name: Upload Screenshots

@@ -8,6 +8,12 @@ on:
         # Runs at 10:00 PM IST (Check Out) - Monday to Friday
         - cron: "30 16 * * 1-5"
 
+        # TEMPORARY TEST - remove after confirming scheduler delay - 12:15 PM IST
+        - cron: "45 6 * * 1-5"
+
+        # TEMPORARY TEST - remove after confirming scheduler delay - 12:30 PM IST
+        - cron: "0 7 * * 1-5"
+
     # Allows you to run this manually from the Actions tab for testing
     workflow_dispatch:
 

@@ -109,7 +109,6 @@ def run_attendance():
 
         # --- DASHBOARD & POPUP HANDLING ---
         time.sleep(10)
-        driver.save_screenshot("01_after_login.png")
 
         # Check for auto-open popup
         try:
@@ -140,11 +139,9 @@ def run_attendance():
         
         print("Popup visible. Pausing for animation...")
         time.sleep(3)
-        driver.save_screenshot("02_before_popup_click.png")
 
         print("Clicking Popup 'Mark attendance'...")
         driver.execute_script("arguments[0].click();", popup_element)
-        driver.save_screenshot("03_immediately_after_click.png")
 
         print("`SUCCESS`: Click Action Performed.")
 

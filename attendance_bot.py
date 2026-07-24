@@ -120,7 +120,6 @@ def run_attendance():
                 driver.execute_script("arguments[0].click();", popup_btn)
                 print("Clicked auto-open popup.")
                 time.sleep(5)
-                driver.save_screenshot("final_success.png")
                 return
         except:
             print("Popup not auto-open.")
@@ -144,15 +143,10 @@ def run_attendance():
         driver.execute_script("arguments[0].click();", popup_element)
 
         print("`SUCCESS`: Click Action Performed.")
-
-        # --- VERIFICATION SCREENSHOT ---
         time.sleep(1) # Wait for Toast message/Success notification
-        print("Taking verification screenshot...")
-        driver.save_screenshot("final_result.png")
 
     except Exception as e:
         print(f"ERROR: {str(e)}")
-        driver.save_screenshot("error_debug.png")
         raise e
 
     finally:

@@ -2,17 +2,11 @@ name: HROne Attendance Bot
 
 on:
     schedule:
-        # Runs at 10:00 AM IST (Check In) - Monday to Friday
-        - cron: "30 4 * * 1-5"
+        # Runs at 10:27 AM IST (Check In) - Monday to Friday
+        - cron: "57 4 * * 1-5"
 
-        # Runs at 10:00 PM IST (Check Out) - Monday to Friday
-        - cron: "30 16 * * 1-5"
-
-        # TEMPORARY TEST - remove after confirming scheduler delay - 12:15 PM IST
-        - cron: "45 6 * * 1-5"
-
-        # TEMPORARY TEST - remove after confirming scheduler delay - 12:30 PM IST
-        - cron: "0 7 * * 1-5"
+        # Runs at 10:27 PM IST (Check Out) - Monday to Friday
+        - cron: "57 16 * * 1-5"
 
     # Allows you to run this manually from the Actions tab for testing
     workflow_dispatch:
@@ -43,11 +37,3 @@ jobs:
                   LONGITUDE: ${{ secrets.LONGITUDE }}
                   PYTHONUNBUFFERED: "1"
               run: python attendance_bot.py
-
-            - name: Upload Screenshots
-              if: always()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: attendance-screenshots-${{ github.run_id }}
-                  path: "*.png"
-                  if-no-files-found: ignore

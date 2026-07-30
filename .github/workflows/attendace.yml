@@ -2,11 +2,11 @@ name: HROne Attendance Bot
 
 on:
     schedule:
-        # Runs at 10:27 AM IST (Check In) - Monday to Friday
-        - cron: "57 4 * * 1-5"
+        # Runs at 9:22 AM IST (Check In) - Monday to Friday
+        - cron: "52 3 * * 1-5"
 
-        # Runs at 10:27 PM IST (Check Out) - Monday to Friday
-        - cron: "57 16 * * 1-5"
+        # Runs at 9:56 PM IST (Check Out) - Monday to Friday
+        - cron: "26 16 * * 1-5"
 
     # Allows you to run this manually from the Actions tab for testing
     workflow_dispatch:
@@ -37,3 +37,11 @@ jobs:
                   LONGITUDE: ${{ secrets.LONGITUDE }}
                   PYTHONUNBUFFERED: "1"
               run: python attendance_bot.py
+
+            - name: Upload error screenshot
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: error-screenshot
+                  path: error_*.png
+                  if-no-files-found: ignore

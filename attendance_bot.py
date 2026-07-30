@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
 load_dotenv()
@@ -75,7 +76,7 @@ def run_attendance():
     driver.execute_cdp_cmd("Emulation.setTimezoneOverride", {"timezoneId": TIMEZONE_ID})
     print(f"Timezone spoofed to: {TIMEZONE_ID}")
 
-    wait = WebDriverWait(driver, 30) 
+    wait = WebDriverWait(driver, 45)
 
     try:
         print(f"Navigating to {HRONE_URL}...")
@@ -126,7 +127,13 @@ def run_attendance():
 
         # Click Dashboard Button
         print("Locating Dashboard 'Mark attendance' button...")
-        home_mark_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Mark attendance')]")))
+        try:
+            home_mark_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Mark attendance')]")))
+        except TimeoutException:
+            print("Button not found in time. Refreshing page and retrying...")
+            driver.refresh()
+            time.sleep(10)
+            home_mark_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Mark attendance')]")))
         
         print("Clicking Dashboard button...")
         driver.execute_script("arguments[0].click();", home_mark_btn)
@@ -147,6 +154,12 @@ def run_attendance():
 
     except Exception as e:
         print(f"ERROR: {str(e)}")
+        try:
+            screenshot_path = f"error_{time.strftime('%Y%m%d_%H%M%S')}.png"
+            driver.save_screenshot(screenshot_path)
+            print(f"Saved error screenshot to {screenshot_path}")
+        except Exception as ss_err:
+            print(f"Could not save error screenshot: {ss_err}")
         raise e
 
     finally:

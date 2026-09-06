@@ -1,14 +1,9 @@
 name: HROne Attendance Bot
 
 on:
-    schedule:
-        # Runs at 9:22 AM IST (Check In) - Monday to Friday
-        - cron: "52 3 * * 1-5"
-
-        # Runs at 9:56 PM IST (Check Out) - Monday to Friday
-        - cron: "26 16 * * 1-5"
-
-    # Allows you to run this manually from the Actions tab for testing
+    # Triggered externally (local cron -> `gh workflow run`) at 10:00 AM / 10:00 PM IST,
+    # Monday to Friday, instead of GitHub's native `schedule:` event, which was firing
+    # hours late during periods of high load. Also allows manual runs from the Actions tab.
     workflow_dispatch:
 
 jobs:

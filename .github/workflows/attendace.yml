@@ -1,10 +1,16 @@
 name: HROne Attendance Bot
+run-name: ${{ inputs.dry_run && 'HROne Attendance Bot (dry run)' || 'HROne Attendance Bot' }}
 
 on:
     # Triggered externally (local cron -> `gh workflow run`) at 10:00 AM / 10:00 PM IST,
     # Monday to Friday, instead of GitHub's native `schedule:` event, which was firing
     # hours late during periods of high load. Also allows manual runs from the Actions tab.
     workflow_dispatch:
+        inputs:
+            dry_run:
+                description: "Log in and locate the buttons, but don't mark attendance"
+                type: boolean
+                default: false
 
 jobs:
     mark-attendance:
@@ -31,6 +37,7 @@ jobs:
                   LATITUDE: ${{ secrets.LATITUDE }}
                   LONGITUDE: ${{ secrets.LONGITUDE }}
                   PYTHONUNBUFFERED: "1"
+                  DRY_RUN: ${{ inputs.dry_run }}
               run: python attendance_bot.py
 
             - name: Upload error screenshot
@@ -39,4 +46,12 @@ jobs:
               with:
                   name: error-screenshot
                   path: error_*.png
+                  if-no-files-found: ignore
+
+            - name: Upload dry run screenshot
+              if: always() && inputs.dry_run
+              uses: actions/upload-artifact@v7
+              with:
+                  name: dry-run-screenshot
+                  path: dryrun_*.png
                   if-no-files-found: ignore

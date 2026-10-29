@@ -25,6 +25,8 @@ EMAIL_ID = os.getenv("HRONE_USER")
 PASSWORD = os.getenv("HRONE_PASS")
 
 is_headless = os.getenv("HEADLESS_MODE", "True").lower() == "true"
+# Dry run: log in and locate the buttons, but stop before marking attendance
+DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 # --- 📍 LOCATION CONFIGURATION ---
 try:
     LATITUDE = float(os.getenv("LATITUDE")) 
@@ -153,6 +155,17 @@ def run_attendance():
 
         punch_before = read_last_punch(driver)
         print(f"Last punch before: {punch_before}")
+
+        if DRY_RUN:
+            print("DRY RUN: locating Dashboard 'Mark attendance' button...")
+            wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Mark attendance')]")))
+            screenshot_path = f"dryrun_{time.strftime('%Y%m%d_%H%M%S')}.png"
+            driver.save_screenshot(screenshot_path)
+            print(f"Saved dry run screenshot to {screenshot_path}")
+            if punch_before is None:
+                raise RuntimeError("DRY RUN: 'Last punch' not found on the dashboard; punch verification would fail")
+            print("`DRY RUN OK`: Logged in, 'Mark attendance' button found, 'Last punch' readable. Not clicking.")
+            return
 
         # Check for auto-open popup
         auto_popup = [b for b in driver.find_elements(By.XPATH, POPUP_BTN_XPATH) if b.is_displayed()]

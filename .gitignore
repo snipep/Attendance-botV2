@@ -1,3 +1,4 @@
 .env
 final_status.png
-**/.claude__pycache__/
+**/.claude
+__pycache__/
